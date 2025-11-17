@@ -1,56 +1,48 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const fetch = require('node-fetch');
 
 const app = express();
+
+// Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Static files serve karega (HTML, CSS, JS)
-app.use(express.static('public'));
+// Root route - IMPORTANT!
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
-// Roblox User Search API
+// Health check route
+app.get('/health', (req, res) => {
+    res.json({ status: 'OK', message: 'Server is running!' });
+});
+
+// Roblox APIs
 app.get('/api/user/:username', async (req, res) => {
     try {
-        const response = await fetch(`https://users.roblox.com/v1/users/search?keyword=${encodeURIComponent(req.params.username)}`);
+        const response = await fetch(`https://users.roblox.com/v1/users/search?keyword=${req.params.username}`);
         const data = await response.json();
         res.json(data);
     } catch (error) {
-        console.error('User search error:', error);
         res.status(500).json({ error: 'API call failed' });
     }
 });
 
-// Roblox Avatar Details API
 app.get('/api/avatar/:userId', async (req, res) => {
     try {
         const response = await fetch(`https://avatar.roblox.com/v1/users/${req.params.userId}/avatar`);
         const data = await response.json();
         res.json(data);
     } catch (error) {
-        console.error('Avatar fetch error:', error);
         res.status(500).json({ error: 'API call failed' });
     }
 });
 
-// User Info by ID
-app.get('/api/userinfo/:userId', async (req, res) => {
-    try {
-        const response = await fetch(`https://users.roblox.com/v1/users/${req.params.userId}`);
-        const data = await response.json();
-        res.json(data);
-    } catch (error) {
-        console.error('User info error:', error);
-        res.status(500).json({ error: 'API call failed' });
-    }
-});
-
-// Root route
-app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/public/index.html');
-});
-
+// Railway specific port binding
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ Server running on port ${PORT}`);
 });
