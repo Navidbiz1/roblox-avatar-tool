@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Roblox Avatar Tool - GloriaousTechs</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Roblox Avatar Master</h1>
+        <p>Free Tool - View, Copy & Manage Roblox Avatars</p>
+        
+        <input type="text" id="username" placeholder="Enter Roblox username">
+        <button onclick="search()">Search</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function search() {
+            const username = document.getElementById('username').value;
+            document.getElementById('result').innerHTML = `
+                <div style="background: #f0f0f0; padding: 15px; margin: 10px 0;">
+                    <h3>User: ${username}</h3>
+                    <p>Avatar details will be shown here</p>
+                    <p><strong>Note:</strong> This is a static demo. For full features, backend needed.</p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
