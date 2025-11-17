@@ -1,155 +1,109 @@
 <script>
-    // CORS Proxy URL - yeh free hai aur kaam karega
-    const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
+    const API_BASE = '/api';
     
-    function searchUser() {
-        const username = document.getElementById('username').value.trim();
+    async function searchUser() {
+        const username = document.getElementById('usernameInput').value.trim();
         const loading = document.getElementById('loading');
-        const result = document.getElementById('result');
+        const results = document.getElementById('results');
         
         if (!username) {
-            alert('Please enter a username');
+            alert('Please enter a Roblox username');
             return;
         }
         
-        loading.style.display = 'block';
-        result.style.display = 'none';
+        showLoading();
         
-        // CORS proxy ke through API call karo
-        fetch(`${CORS_PROXY}https://users.roblox.com/v1/users/search?keyword=${encodeURIComponent(username)}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                loading.style.display = 'none';
+        try {
+            // Hamare backend API ko call karo
+            const response = await fetch(`${API_BASE}/user/${username}`);
+            const data = await response.json();
+            
+            hideLoading();
+            
+            if (data.data && data.data.length > 0) {
+                const user = data.data[0];
+                const avatarData = await getAvatarDetails(user.id);
+                const userInfo = await getUserInfo(user.id);
                 
-                if (data.data && data.data.length > 0) {
-                    const user = data.data[0];
-                    result.innerHTML = `
-                        <h3>✅ User Found: ${user.name}</h3>
-                        <p><strong>User ID:</strong> ${user.id}</p>
-                        <p><strong>Display Name:</strong> ${user.displayName || 'N/A'}</p>
-                        <button onclick="getAvatar(${user.id})">Get Avatar Details</button>
-                    `;
-                    result.style.display = 'block';
-                } else {
-                    result.innerHTML = '<p>❌ User not found!</p>';
-                    result.style.display = 'block';
-                }
-            })
-            .catch(error => {
-                loading.style.display = 'none';
-                console.error('Error:', error);
-                result.innerHTML = `
-                    <p>❌ Error fetching data. Please try again.</p>
-                    <p><small>If this continues, try the backup method below:</small></p>
-                    <button onclick="searchUserBackup()">Use Backup Search</button>
-                `;
-                result.style.display = 'block';
-            });
+                displayResults(user, avatarData, userInfo);
+            } else {
+                showError('User not found');
+            }
+        } catch (error) {
+            hideLoading();
+            showError('Error fetching data: ' + error.message);
+        }
     }
     
-    // Backup method - different API endpoint
-    function searchUserBackup() {
-        const username = document.getElementById('username').value.trim();
-        const result = document.getElementById('result');
-        
-        result.innerHTML = '<p>Using backup search method...</p>';
-        
-        // Alternative API endpoint
-        fetch(`https://api.roblox.com/users/get-by-username?username=${username}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.Id) {
-                    result.innerHTML = `
-                        <h3>✅ User Found: ${data.Username}</h3>
-                        <p><strong>User ID:</strong> ${data.Id}</p>
-                        <button onclick="getAvatar(${data.Id})">Get Avatar Details</button>
-                    `;
-                } else {
-                    result.innerHTML = '<p>❌ User not found with backup method too.</p>';
-                }
-            })
-            .catch(error => {
-                result.innerHTML = `
-                    <p>❌ All methods failed. This might be a browser restriction.</p>
-                    <p><strong>Try this:</strong> Open Chrome, press F12 > Console > type this:</p>
-                    <code>fetch('https://users.roblox.com/v1/users/search?keyword=Roblox').then(r=>r.json()).then(console.log)</code>
-                `;
-            });
+    async function getAvatarDetails(userId) {
+        const response = await fetch(`${API_BASE}/avatar/${userId}`);
+        return await response.json();
     }
     
-    function getAvatar(userId) {
-        const result = document.getElementById('result');
-        result.innerHTML = '<p>Loading avatar details...</p>';
+    async function getUserInfo(userId) {
+        const response = await fetch(`${API_BASE}/userinfo/${userId}`);
+        return await response.json();
+    }
+    
+    function displayResults(user, avatarData, userInfo) {
+        let html = `
+            <div class="avatar-card">
+                <h3>👤 ${user.name}'s Avatar</h3>
+                <p><strong>User ID:</strong> ${user.id}</p>
+                <p><strong>Display Name:</strong> ${userInfo?.displayName || 'N/A'}</p>
+                
+                <h4>🎁 Equipped Items (${avatarData.assets?.length || 0})</h4>
+                <div class="items-list">
+                    ${displayItems(avatarData.assets)}
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="btn" onclick="copyOutfit(${user.id})">📋 Copy Outfit</button>
+                    <button class="btn btn-success" onclick="saveOutfit(${user.id}, '${user.name}')">💾 Save Outfit</button>
+                </div>
+            </div>
+        `;
         
-        // CORS proxy ke through avatar API call
-        fetch(`${CORS_PROXY}https://avatar.roblox.com/v1/users/${userId}/avatar`)
-            .then(response => response.json())
-            .then(avatarData => {
-                let html = `<h3>🎮 Avatar Details for User ID: ${userId}</h3>`;
-                
-                if (avatarData.assets && avatarData.assets.length > 0) {
-                    html += `<p><strong>Equipped Items:</strong> ${avatarData.assets.length}</p>`;
-                    html += `<div style="max-height: 150px; overflow-y: auto; margin: 10px 0; padding: 10px; background: white; border-radius: 5px; border: 1px solid #ddd;">`;
-                    
-                    avatarData.assets.forEach(item => {
-                        html += `<div style="padding: 8px; border-bottom: 1px solid #eee; font-size: 14px;">
-                            <strong>${item.name}</strong> (ID: ${item.id})
-                        </div>`;
-                    });
-                    
-                    html += `</div>`;
-                } else {
-                    html += `<p>No items equipped</p>`;
-                }
-                
-                // Body colors
-                if (avatarData.bodyColors) {
-                    html += `<h4>🎨 Body Colors:</h4>`;
-                    html += `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0;">`;
-                    
-                    const colors = avatarData.bodyColors;
-                    for (const [key, value] of Object.entries(colors)) {
-                        if (value) {
-                            html += `<div style="font-size: 12px;">
-                                <strong>${key}:</strong> ${value}
-                            </div>`;
-                        }
-                    }
-                    
-                    html += `</div>`;
-                }
-                
-                // Action buttons
-                html += `
-                    <div style="margin-top: 15px;">
-                        <button onclick="copyOutfit(${userId})">📋 Copy This Outfit</button>
-                        <button onclick="saveToLibrary(${userId}, '${document.getElementById('username').value}')" style="background: #28a745;">💾 Save to Library</button>
-                    </div>
-                `;
-                
-                result.innerHTML = html;
-            })
-            .catch(error => {
-                console.error('Avatar error:', error);
-                result.innerHTML = `
-                    <p>❌ Error loading avatar details</p>
-                    <button onclick="searchUser()">← Back to Search</button>
-                `;
-            });
+        document.getElementById('results').innerHTML = html;
+        document.getElementById('results').style.display = 'block';
+    }
+    
+    function displayItems(assets) {
+        if (!assets || assets.length === 0) {
+            return '<p>No items equipped</p>';
+        }
+        
+        return assets.map(item => `
+            <div class="item">
+                <strong>${item.name}</strong> (ID: ${item.id})
+            </div>
+        `).join('');
+    }
+    
+    function showLoading() {
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('results').style.display = 'none';
+    }
+    
+    function hideLoading() {
+        document.getElementById('loading').style.display = 'none';
+    }
+    
+    function showError(message) {
+        document.getElementById('results').innerHTML = `
+            <div class="avatar-card error">
+                <h3>❌ Error</h3>
+                <p>${message}</p>
+            </div>
+        `;
+        document.getElementById('results').style.display = 'block';
     }
     
     function copyOutfit(userId) {
-        alert(`✅ Outfit for User ${userId} copied to clipboard!`);
-        // Yahan aap actual copy logic add kar sakte hain
+        alert(`Outfit for user ${userId} copied!`);
     }
     
-    function saveToLibrary(userId, username) {
-        alert(`✅ ${username}'s outfit saved to your library!`);
-        // Yahan aap localStorage mein save kar sakte hain
+    function saveOutfit(userId, username) {
+        alert(`Outfit for ${username} saved!`);
     }
 </script>
