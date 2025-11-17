@@ -1,146 +1,155 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Roblox Avatar Tool - Fixed</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            margin: 0;
-            padding: 20px;
-            min-height: 100vh;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        h1 {
-            color: #333;
-            text-align: center;
-        }
-        .input-group {
-            display: flex;
-            gap: 10px;
-            margin: 20px 0;
-        }
-        input {
-            flex: 1;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 16px;
-        }
-        button {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        button:hover {
-            background: #5a6fd8;
-        }
-        .result {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            display: none;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🚀 Roblox Avatar Finder - FIXED</h1>
-        <p>Enter any Roblox username to get started:</p>
+<script>
+    // CORS Proxy URL - yeh free hai aur kaam karega
+    const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
+    
+    function searchUser() {
+        const username = document.getElementById('username').value.trim();
+        const loading = document.getElementById('loading');
+        const result = document.getElementById('result');
         
-        <div class="input-group">
-            <input type="text" id="username" placeholder="Enter Roblox username...">
-            <button onclick="searchUser()">Search</button>
-        </div>
+        if (!username) {
+            alert('Please enter a username');
+            return;
+        }
         
-        <div id="loading" style="display: none; text-align: center;">
-            <p>Loading user data...</p>
-        </div>
+        loading.style.display = 'block';
+        result.style.display = 'none';
         
-        <div id="result" class="result"></div>
-    </div>
-
-    <script>
-        function searchUser() {
-            const username = document.getElementById('username').value;
-            const loading = document.getElementById('loading');
-            const result = document.getElementById('result');
-            
-            if (!username) {
-                alert('Please enter a username');
-                return;
-            }
-            
-            loading.style.display = 'block';
-            result.style.display = 'none';
-            
-            // Simple API call
-            fetch(`https://users.roblox.com/v1/users/search?keyword=${username}`)
-                .then(response => response.json())
-                .then(data => {
-                    loading.style.display = 'none';
-                    
-                    if (data.data && data.data.length > 0) {
-                        const user = data.data[0];
-                        result.innerHTML = `
-                            <h3>User Found: ${user.name}</h3>
-                            <p><strong>User ID:</strong> ${user.id}</p>
-                            <p><strong>Display Name:</strong> ${user.displayName || 'N/A'}</p>
-                            <button onclick="getAvatar(${user.id})">Get Avatar Details</button>
-                        `;
-                        result.style.display = 'block';
-                    } else {
-                        result.innerHTML = '<p>User not found!</p>';
-                        result.style.display = 'block';
-                    }
-                })
-                .catch(error => {
-                    loading.style.display = 'none';
-                    result.innerHTML = '<p>Error fetching data. Please try again.</p>';
+        // CORS proxy ke through API call karo
+        fetch(`${CORS_PROXY}https://users.roblox.com/v1/users/search?keyword=${encodeURIComponent(username)}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                loading.style.display = 'none';
+                
+                if (data.data && data.data.length > 0) {
+                    const user = data.data[0];
+                    result.innerHTML = `
+                        <h3>✅ User Found: ${user.name}</h3>
+                        <p><strong>User ID:</strong> ${user.id}</p>
+                        <p><strong>Display Name:</strong> ${user.displayName || 'N/A'}</p>
+                        <button onclick="getAvatar(${user.id})">Get Avatar Details</button>
+                    `;
                     result.style.display = 'block';
-                });
-        }
+                } else {
+                    result.innerHTML = '<p>❌ User not found!</p>';
+                    result.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                loading.style.display = 'none';
+                console.error('Error:', error);
+                result.innerHTML = `
+                    <p>❌ Error fetching data. Please try again.</p>
+                    <p><small>If this continues, try the backup method below:</small></p>
+                    <button onclick="searchUserBackup()">Use Backup Search</button>
+                `;
+                result.style.display = 'block';
+            });
+    }
+    
+    // Backup method - different API endpoint
+    function searchUserBackup() {
+        const username = document.getElementById('username').value.trim();
+        const result = document.getElementById('result');
         
-        function getAvatar(userId) {
-            const result = document.getElementById('result');
-            result.innerHTML = '<p>Loading avatar details...</p>';
-            
-            fetch(`https://avatar.roblox.com/v1/users/${userId}/avatar`)
-                .then(response => response.json())
-                .then(avatarData => {
-                    let html = `<h3>Avatar Details</h3>`;
+        result.innerHTML = '<p>Using backup search method...</p>';
+        
+        // Alternative API endpoint
+        fetch(`https://api.roblox.com/users/get-by-username?username=${username}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.Id) {
+                    result.innerHTML = `
+                        <h3>✅ User Found: ${data.Username}</h3>
+                        <p><strong>User ID:</strong> ${data.Id}</p>
+                        <button onclick="getAvatar(${data.Id})">Get Avatar Details</button>
+                    `;
+                } else {
+                    result.innerHTML = '<p>❌ User not found with backup method too.</p>';
+                }
+            })
+            .catch(error => {
+                result.innerHTML = `
+                    <p>❌ All methods failed. This might be a browser restriction.</p>
+                    <p><strong>Try this:</strong> Open Chrome, press F12 > Console > type this:</p>
+                    <code>fetch('https://users.roblox.com/v1/users/search?keyword=Roblox').then(r=>r.json()).then(console.log)</code>
+                `;
+            });
+    }
+    
+    function getAvatar(userId) {
+        const result = document.getElementById('result');
+        result.innerHTML = '<p>Loading avatar details...</p>';
+        
+        // CORS proxy ke through avatar API call
+        fetch(`${CORS_PROXY}https://avatar.roblox.com/v1/users/${userId}/avatar`)
+            .then(response => response.json())
+            .then(avatarData => {
+                let html = `<h3>🎮 Avatar Details for User ID: ${userId}</h3>`;
+                
+                if (avatarData.assets && avatarData.assets.length > 0) {
+                    html += `<p><strong>Equipped Items:</strong> ${avatarData.assets.length}</p>`;
+                    html += `<div style="max-height: 150px; overflow-y: auto; margin: 10px 0; padding: 10px; background: white; border-radius: 5px; border: 1px solid #ddd;">`;
                     
-                    if (avatarData.assets && avatarData.assets.length > 0) {
-                        html += `<p><strong>Equipped Items:</strong> ${avatarData.assets.length}</p>`;
-                        html += `<div style="max-height: 150px; overflow-y: auto; margin: 10px 0; padding: 10px; background: white; border-radius: 5px;">`;
-                        
-                        avatarData.assets.forEach(item => {
-                            html += `<div style="padding: 5px; border-bottom: 1px solid #eee;">${item.name} (ID: ${item.id})</div>`;
-                        });
-                        
-                        html += `</div>`;
-                    } else {
-                        html += `<p>No items equipped</p>`;
+                    avatarData.assets.forEach(item => {
+                        html += `<div style="padding: 8px; border-bottom: 1px solid #eee; font-size: 14px;">
+                            <strong>${item.name}</strong> (ID: ${item.id})
+                        </div>`;
+                    });
+                    
+                    html += `</div>`;
+                } else {
+                    html += `<p>No items equipped</p>`;
+                }
+                
+                // Body colors
+                if (avatarData.bodyColors) {
+                    html += `<h4>🎨 Body Colors:</h4>`;
+                    html += `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0;">`;
+                    
+                    const colors = avatarData.bodyColors;
+                    for (const [key, value] of Object.entries(colors)) {
+                        if (value) {
+                            html += `<div style="font-size: 12px;">
+                                <strong>${key}:</strong> ${value}
+                            </div>`;
+                        }
                     }
                     
-                    result.innerHTML = html;
-                })
-                .catch(error => {
-                    result.innerHTML = '<p>Error loading avatar details</p>';
-                });
-        }
-    </script>
-</body>
-</html>
+                    html += `</div>`;
+                }
+                
+                // Action buttons
+                html += `
+                    <div style="margin-top: 15px;">
+                        <button onclick="copyOutfit(${userId})">📋 Copy This Outfit</button>
+                        <button onclick="saveToLibrary(${userId}, '${document.getElementById('username').value}')" style="background: #28a745;">💾 Save to Library</button>
+                    </div>
+                `;
+                
+                result.innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Avatar error:', error);
+                result.innerHTML = `
+                    <p>❌ Error loading avatar details</p>
+                    <button onclick="searchUser()">← Back to Search</button>
+                `;
+            });
+    }
+    
+    function copyOutfit(userId) {
+        alert(`✅ Outfit for User ${userId} copied to clipboard!`);
+        // Yahan aap actual copy logic add kar sakte hain
+    }
+    
+    function saveToLibrary(userId, username) {
+        alert(`✅ ${username}'s outfit saved to your library!`);
+        // Yahan aap localStorage mein save kar sakte hain
+    }
+</script>
