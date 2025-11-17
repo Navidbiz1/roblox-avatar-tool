@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Roblox Avatar Tool - Fixed</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #5a6fd8;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Roblox Avatar Finder - FIXED</h1>
+        <p>Enter any Roblox username to get started:</p>
+        
+        <div class="input-group">
+            <input type="text" id="username" placeholder="Enter Roblox username...">
+            <button onclick="searchUser()">Search</button>
+        </div>
+        
+        <div id="loading" style="display: none; text-align: center;">
+            <p>Loading user data...</p>
+        </div>
+        
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        function searchUser() {
+            const username = document.getElementById('username').value;
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            
+            if (!username) {
+                alert('Please enter a username');
+                return;
+            }
+            
+            loading.style.display = 'block';
+            result.style.display = 'none';
+            
+            // Simple API call
+            fetch(`https://users.roblox.com/v1/users/search?keyword=${username}`)
+                .then(response => response.json())
+                .then(data => {
+                    loading.style.display = 'none';
+                    
+                    if (data.data && data.data.length > 0) {
+                        const user = data.data[0];
+                        result.innerHTML = `
+                            <h3>User Found: ${user.name}</h3>
+                            <p><strong>User ID:</strong> ${user.id}</p>
+                            <p><strong>Display Name:</strong> ${user.displayName || 'N/A'}</p>
+                            <button onclick="getAvatar(${user.id})">Get Avatar Details</button>
+                        `;
+                        result.style.display = 'block';
+                    } else {
+                        result.innerHTML = '<p>User not found!</p>';
+                        result.style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    loading.style.display = 'none';
+                    result.innerHTML = '<p>Error fetching data. Please try again.</p>';
+                    result.style.display = 'block';
+                });
+        }
+        
+        function getAvatar(userId) {
+            const result = document.getElementById('result');
+            result.innerHTML = '<p>Loading avatar details...</p>';
+            
+            fetch(`https://avatar.roblox.com/v1/users/${userId}/avatar`)
+                .then(response => response.json())
+                .then(avatarData => {
+                    let html = `<h3>Avatar Details</h3>`;
+                    
+                    if (avatarData.assets && avatarData.assets.length > 0) {
+                        html += `<p><strong>Equipped Items:</strong> ${avatarData.assets.length}</p>`;
+                        html += `<div style="max-height: 150px; overflow-y: auto; margin: 10px 0; padding: 10px; background: white; border-radius: 5px;">`;
+                        
+                        avatarData.assets.forEach(item => {
+                            html += `<div style="padding: 5px; border-bottom: 1px solid #eee;">${item.name} (ID: ${item.id})</div>`;
+                        });
+                        
+                        html += `</div>`;
+                    } else {
+                        html += `<p>No items equipped</p>`;
+                    }
+                    
+                    result.innerHTML = html;
+                })
+                .catch(error => {
+                    result.innerHTML = '<p>Error loading avatar details</p>';
+                });
+        }
+    </script>
+</body>
+</html>
