@@ -1,259 +1,313 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roblox Avatar Master - Free Tool</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+<script>
+    // Utility functions
+    function showLoading() {
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('results').style.display = 'none';
+    }
 
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
+    function hideLoading() {
+        document.getElementById('loading').style.display = 'none';
+    }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-        }
-
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-
-        .main-content {
-            padding: 30px;
-        }
-
-        .search-box {
-            background: #f8f9fa;
-            padding: 25px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-
-        .input-group {
-            display: flex;
-            gap: 10px;
-            max-width: 500px;
-            margin: 0 auto;
-        }
-
-        #usernameInput {
-            flex: 1;
-            padding: 12px 15px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 16px;
-            outline: none;
-            transition: border-color 0.3s;
-        }
-
-        #usernameInput:focus {
-            border-color: #667eea;
-        }
-
-        #searchBtn {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background 0.3s;
-        }
-
-        #searchBtn:hover {
-            background: #5a6fd8;
-        }
-
-        .results {
-            display: none;
-            background: white;
-            border-radius: 10px;
-            padding: 25px;
-            margin-top: 20px;
-            border: 2px solid #e9ecef;
-        }
-
-        .avatar-card {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-
-        .btn {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            margin: 5px;
-            transition: background 0.3s;
-        }
-
-        .btn:hover {
-            background: #5a6fd8;
-        }
-
-        .btn-success {
-            background: #51cf66;
-        }
-
-        .btn-success:hover {
-            background: #40c057;
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 20px;
-        }
-
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 2s linear infinite;
-            margin: 0 auto;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-top: 30px;
-        }
-
-        .feature-card {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-        }
-
-        .footer {
-            text-align: center;
-            padding: 20px;
-            background: #f8f9fa;
-            color: #6c757d;
-            margin-top: 30px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🚀 Roblox Avatar Master</h1>
-            <p>Free Tool - View, Copy & Manage Roblox Avatars</p>
-        </div>
-
-        <div class="main-content">
-            <div class="search-box">
-                <h2>Search Roblox User</h2>
-                <p>Enter any Roblox username to get started</p>
-                
-                <div class="input-group">
-                    <input type="text" id="usernameInput" placeholder="Enter Roblox username...">
-                    <button id="searchBtn" onclick="searchUser()">Search</button>
-                </div>
+    function showError(message) {
+        document.getElementById('results').innerHTML = `
+            <div class="avatar-card" style="border-left: 4px solid #ff6b6b;">
+                <h3>❌ Error</h3>
+                <p>${message}</p>
+                <button class="btn" onclick="clearSearch()">Try Again</button>
             </div>
+        `;
+        document.getElementById('results').style.display = 'block';
+    }
 
-            <div class="loading" id="loading">
-                <div class="spinner"></div>
-                <p>Loading avatar data...</p>
-            </div>
+    function clearSearch() {
+        document.getElementById('usernameInput').value = '';
+        document.getElementById('results').style.display = 'none';
+    }
 
-            <div class="results" id="results">
-                <!-- Yahan results aayenge -->
-            </div>
+    // Main search function
+    async function searchUser() {
+        const username = document.getElementById('usernameInput').value.trim();
+        
+        if (!username) {
+            showError('Please enter a Roblox username');
+            return;
+        }
 
-            <div class="features-grid">
-                <div class="feature-card">
-                    <h3>👤 Avatar Viewer</h3>
-                    <p>View complete avatar details of any player</p>
-                </div>
-                <div class="feature-card">
-                    <h3>📋 Outfit Copier</h3>
-                    <p>Copy any player's outfit with one click</p>
-                </div>
-                <div class="feature-card">
-                    <h3>📚 Outfit Library</h3>
-                    <p>Save and manage your favorite outfits</p>
-                </div>
-                <div class="feature-card">
-                    <h3>🎨 AI Generator</h3>
-                    <p>Get new outfit ideas using AI</p>
-                </div>
-            </div>
-        </div>
+        showLoading();
 
-        <div class="footer">
-            <p>© 2024 Roblox Avatar Master - Free Tool | Made with ❤️ for Roblox Community</p>
-        </div>
-    </div>
+        try {
+            // Step 1: Get User ID from username
+            const userId = await getUserId(username);
+            if (!userId) {
+                showError('User not found. Please check the username.');
+                return;
+            }
 
-    <script>
-        // Yeh JavaScript code next step mein add karenge
-        function searchUser() {
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('results').style.display = 'none';
+            // Step 2: Get Avatar Details
+            const avatarData = await getAvatarDetails(userId);
             
-            // Simulate loading - next step mein actual API add karenge
-            setTimeout(() => {
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('results').style.display = 'block';
-                document.getElementById('results').innerHTML = `
-                    <div class="avatar-card">
-                        <h3>Demo Avatar Data</h3>
-                        <p>This is a demo. Next step mein actual Roblox API integrate karenge.</p>
-                        <button class="btn">Copy Outfit</button>
-                        <button class="btn btn-success">Save Outfit</button>
+            // Step 3: Get User Info
+            const userInfo = await getUserInfo(userId);
+            
+            // Step 4: Display Results
+            displayResults(userId, username, avatarData, userInfo);
+            
+        } catch (error) {
+            console.error('Error:', error);
+            showError('Something went wrong. Please try again.');
+        }
+    }
+
+    // Get User ID from username
+    async function getUserId(username) {
+        try {
+            const response = await fetch(`https://users.roblox.com/v1/users/search?keyword=${encodeURIComponent(username)}`);
+            const data = await response.json();
+            
+            if (data.data && data.data.length > 0) {
+                return data.data[0].id;
+            }
+            return null;
+        } catch (error) {
+            console.error('Error getting user ID:', error);
+            return null;
+        }
+    }
+
+    // Get Avatar Details
+    async function getAvatarDetails(userId) {
+        try {
+            const response = await fetch(`https://avatar.roblox.com/v1/users/${userId}/avatar`);
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error getting avatar details:', error);
+            return null;
+        }
+    }
+
+    // Get User Basic Info
+    async function getUserInfo(userId) {
+        try {
+            const response = await fetch(`https://users.roblox.com/v1/users/${userId}`);
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error getting user info:', error);
+            return null;
+        }
+    }
+
+    // Display Results
+    function displayResults(userId, username, avatarData, userInfo) {
+        hideLoading();
+
+        if (!avatarData) {
+            showError('Could not load avatar data.');
+            return;
+        }
+
+        const assets = avatarData.assets || [];
+        const bodyColors = avatarData.bodyColors || {};
+        const scales = avatarData.scales || {};
+
+        let html = `
+            <div class="avatar-card">
+                <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 20px;">
+                    <h3>👤 ${username}'s Avatar</h3>
+                    <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 15px; font-size: 12px;">
+                        User ID: ${userId}
+                    </span>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div>
+                        <h4>🎨 Body Colors</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                            ${displayBodyColors(bodyColors)}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4>📊 Body Scales</h4>
+                        <div style="margin-top: 10px;">
+                            ${displayBodyScales(scales)}
+                        </div>
+                    </div>
+                </div>
+                
+                <h4>🎁 Equipped Items (${assets.length})</h4>
+                <div style="max-height: 200px; overflow-y: auto; margin: 10px 0; padding: 10px; background: white; border-radius: 8px;">
+                    ${displayEquippedItems(assets)}
+                </div>
+                
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px;">
+                    <button class="btn" onclick="copyOutfit(${userId})">📋 Copy Outfit</button>
+                    <button class="btn btn-success" onclick="saveOutfit('${username}', ${userId})">💾 Save to Library</button>
+                    <button class="btn" onclick="viewOutfitLibrary(${userId})">📚 View All Outfits</button>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('results').innerHTML = html;
+        document.getElementById('results').style.display = 'block';
+    }
+
+    // Display Body Colors
+    function displayBodyColors(bodyColors) {
+        const colorMap = {
+            'headColor': 'Head',
+            'torsoColor': 'Torso', 
+            'rightArmColor': 'Right Arm',
+            'leftArmColor': 'Left Arm',
+            'rightLegColor': 'Right Leg',
+            'leftLegColor': 'Left Leg'
+        };
+
+        let colorsHtml = '';
+        for (const [key, label] of Object.entries(colorMap)) {
+            const color = bodyColors[key];
+            if (color) {
+                colorsHtml += `
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <div style="width: 15px; height: 15px; background: #${color.toString(16).padStart(6, '0')}; border: 1px solid #ddd;"></div>
+                        <span style="font-size: 12px;">${label}</span>
                     </div>
                 `;
-            }, 2000);
+            }
+        }
+        return colorsHtml || '<p style="font-size: 12px; color: #666;">No color data</p>';
+    }
+
+    // Display Body Scales
+    function displayBodyScales(scales) {
+        const scaleMap = {
+            'height': 'Height',
+            'width': 'Width',
+            'head': 'Head',
+            'depth': 'Depth',
+            'proportion': 'Proportion',
+            'bodyType': 'Body Type'
+        };
+
+        let scalesHtml = '';
+        for (const [key, label] of Object.entries(scaleMap)) {
+            const value = scales[key];
+            if (value !== undefined && value !== null) {
+                scalesHtml += `
+                    <div style="display: flex; justify-content: between; font-size: 12px; margin-bottom: 5px;">
+                        <span>${label}:</span>
+                        <span style="font-weight: bold;">${value}</span>
+                    </div>
+                `;
+            }
+        }
+        return scalesHtml || '<p style="font-size: 12px; color: #666;">No scale data</p>';
+    }
+
+    // Display Equipped Items
+    function displayEquippedItems(assets) {
+        if (!assets || assets.length === 0) {
+            return '<p style="text-align: center; color: #666; padding: 20px;">No items equipped</p>';
         }
 
-        // Enter key press functionality
-        document.getElementById('usernameInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                searchUser();
-            }
+        return assets.map(asset => `
+            <div style="display: flex; align-items: center; gap: 10px; padding: 8px; border-bottom: 1px solid #eee;">
+                <div style="width: 30px; height: 30px; background: #f0f0f0; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 12px;">🎁</div>
+                <div style="flex: 1;">
+                    <div style="font-weight: bold; font-size: 12px;">${asset.name || 'Unknown Item'}</div>
+                    <div style="font-size: 10px; color: #666;">ID: ${asset.id}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Copy Outfit Function
+    function copyOutfit(userId) {
+        // Save to localStorage
+        const outfitData = {
+            userId: userId,
+            timestamp: new Date().toISOString(),
+            copiedFrom: document.getElementById('usernameInput').value.trim()
+        };
+        
+        localStorage.setItem('lastCopiedOutfit', JSON.stringify(outfitData));
+        
+        alert('✅ Outfit copied successfully! You can now paste it in Roblox.');
+    }
+
+    // Save Outfit Function
+    function saveOutfit(username, userId) {
+        let savedOutfits = JSON.parse(localStorage.getItem('savedOutfits') || '[]');
+        
+        const newOutfit = {
+            id: Date.now(),
+            username: username,
+            userId: userId,
+            timestamp: new Date().toISOString(),
+            name: `${username}'s Outfit`
+        };
+        
+        savedOutfits.push(newOutfit);
+        localStorage.setItem('savedOutfits', JSON.stringify(savedOutfits));
+        
+        alert('✅ Outfit saved to your library!');
+    }
+
+    // View Outfit Library
+    function viewOutfitLibrary() {
+        const savedOutfits = JSON.parse(localStorage.getItem('savedOutfits') || '[]');
+        
+        if (savedOutfits.length === 0) {
+            alert('No outfits saved yet. Copy an outfit first!');
+            return;
+        }
+        
+        let html = `
+            <div class="avatar-card">
+                <h3>📚 Your Saved Outfits</h3>
+                <div style="max-height: 300px; overflow-y: auto;">
+        `;
+        
+        savedOutfits.forEach(outfit => {
+            html += `
+                <div style="display: flex; justify-content: between; align-items: center; padding: 10px; border-bottom: 1px solid #eee;">
+                    <div>
+                        <div style="font-weight: bold;">${outfit.name}</div>
+                        <div style="font-size: 12px; color: #666;">Saved: ${new Date(outfit.timestamp).toLocaleDateString()}</div>
+                    </div>
+                    <button class="btn" onclick="loadOutfit(${outfit.userId})">Load</button>
+                </div>
+            `;
         });
-    </script>
-</body>
-</html>
+        
+        html += `
+                </div>
+                <button class="btn" onclick="clearSearch()" style="margin-top: 15px;">Back to Search</button>
+            </div>
+        `;
+        
+        document.getElementById('results').innerHTML = html;
+        document.getElementById('results').style.display = 'block';
+    }
+
+    // Load Saved Outfit
+    function loadOutfit(userId) {
+        document.getElementById('usernameInput').value = userId;
+        searchUser();
+    }
+
+    // Enter key functionality
+    document.getElementById('usernameInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            searchUser();
+        }
+    });
+
+    // Initialize - Check for saved outfits
+    window.addEventListener('load', function() {
+        const savedOutfits = JSON.parse(localStorage.getItem('savedOutfits') || '[]');
+        console.log(`Loaded ${savedOutfits.length} saved outfits`);
+    });
+</script>
