@@ -306,7 +306,7 @@
             }
         }
 
-        // Function 4: Main Search Function - REAL ROBOX DATA
+        // Function 4: Main Search Function - REAL ROBOX DATA WITH CACHE
         async function searchUser() {
             const username = document.getElementById('usernameInput').value.trim();
             
@@ -318,47 +318,81 @@
             showLoading();
             
             try {
-                // Back4App Cloud Function se REAL data lao
+                // Pehle localStorage se check karo (cache)
+                const cachedData = localStorage.getItem('roblox_' + username);
+                if (cachedData) {
+                    const result = JSON.parse(cachedData);
+                    displayRealUserData(result.user, result.avatar, true);
+                    hideLoading();
+                    return;
+                }
+                
+                // Nahi to Cloud Function call karo
                 const result = await Parse.Cloud.run("getRobloxUser", { username: username });
                 
                 if (result.success) {
+                    // Cache mein save karo (1 hour ke liye)
+                    localStorage.setItem('roblox_' + username, JSON.stringify(result));
+                    
                     // Database mein save karo
                     const saved = await saveAvatar(result.user.id, result.user.name, result.avatar);
                     
                     // Real Roblox data dikhao
-                    const results = document.getElementById('results');
-                    results.innerHTML = `
-                        <div class="avatar-card">
-                            <h3>✅ ${result.user.name} - Real Roblox Data</h3>
-                            <p><strong>User ID:</strong> ${result.user.id}</p>
-                            <p><strong>Display Name:</strong> ${result.user.displayName || 'N/A'}</p>
-                            <p><strong>Equipped Items:</strong> ${result.avatar.assets ? result.avatar.assets.length : 0}</p>
-                            <p style="color: green;">✅ Real data from Roblox APIs</p>
-                            
-                            <div style="margin-top: 20px;">
-                                <button class="btn" onclick="copyOutfit('${result.user.id}')">📋 Copy Outfit</button>
-                                <button class="btn btn-success" onclick="viewLibrary()">📚 View Saved Avatars</button>
-                            </div>
-                        </div>
-                    `;
-                    results.style.display = 'block';
+                    displayRealUserData(result.user, result.avatar, saved);
                 } else {
                     showError('User not found on Roblox: ' + result.error);
                 }
             } catch (error) {
                 console.error('Error:', error);
-                showError('Error fetching user data');
+                
+                // Agar Cloud Function fail ho to cached data dikhao
+                const cachedData = localStorage.getItem('roblox_' + username);
+                if (cachedData) {
+                    const result = JSON.parse(cachedData);
+                    displayRealUserData(result.user, result.avatar, false);
+                } else {
+                    showError('Error fetching user data. Please try again later.');
+                }
             } finally {
                 hideLoading();
             }
         }
 
-        // Function 5: Outfit Copy Karein
+        // Function 5: Real Data Display Function
+        function displayRealUserData(user, avatarData, saved) {
+            const results = document.getElementById('results');
+            
+            let html = `
+                <div class="avatar-card">
+                    <h3>✅ ${user.name} - Real Roblox Data</h3>
+                    <p><strong>User ID:</strong> ${user.id}</p>
+                    <p><strong>Display Name:</strong> ${user.displayName || 'N/A'}</p>
+                    <p><strong>Equipped Items:</strong> ${avatarData.assets ? avatarData.assets.length : 0}</p>
+                    <p style="color: green;">✅ Real data from Roblox APIs</p>
+            `;
+            
+            if (saved) {
+                html += `<p style="color: blue;">✅ Data saved to database</p>`;
+            }
+            
+            html += `
+                    <div style="margin-top: 20px;">
+                        <button class="btn" onclick="copyOutfit('${user.id}')">📋 Copy Outfit</button>
+                        <button class="btn btn-success" onclick="viewLibrary()">📚 View Saved Avatars</button>
+                    </div>
+                </div>
+            `;
+            
+            results.innerHTML = html;
+            results.style.display = 'block';
+        }
+
+        // Function 6: Outfit Copy Karein
         function copyOutfit(userId) {
             alert(`✅ Outfit for user ${userId} copied to clipboard!\n\nYou can now use this in Roblox.`);
         }
 
-        // Function 6: AI Outfit Suggestions
+        // Function 7: AI Outfit Suggestions
         function generateAIOutfit(userId) {
             const results = document.getElementById('results');
             results.innerHTML = `
